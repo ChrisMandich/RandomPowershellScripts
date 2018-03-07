@@ -11,7 +11,7 @@ The script itself iterates through the global catalog servers for the current AD
 
 
 .LINK
-
+https://github.com/ChrisMandich/RandomPowershellScripts/blob/master/Get-DomainUserLastLogon.ps1
 
 #>
 
