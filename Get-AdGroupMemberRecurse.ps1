@@ -4,7 +4,7 @@ function Get-AdGroupMemberRecurse {
 
 <#
 .SYNOPSIS
-This is a simple Powershell Script to retrieve all nested groups for an AD account. 
+This is a simple Powershell Script to retrieve all nested groups for an AD group. 
 .DESCRIPTION
 The script uses Get-AdGroupMember to collect all associated groups for a parent group. The found groups are added to a global Variable $global:GroupList
 .EXAMPLE
