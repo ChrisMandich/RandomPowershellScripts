@@ -29,10 +29,10 @@ https://github.com/ChrisMandich/RandomPowershellScripts
         $Global:GroupList += $Identity
         
         #Check for groups in group
-        $GROUP = Get-ADGroupMember -Identity $Identity.name | where objectClass -eq "group"
+        $GROUP = Get-ADGroupMember -Identity $Identity.DistinguishedName | where objectClass -eq "group"
 
         #Check new groups for child groups
-        $GROUP | ForEach-Object{Get-AdGroupMemberRecurse -Identity $_.name}
+        $GROUP | ForEach-Object{Get-AdGroupMemberRecurse -Identity $_.DistinguishedName}
     }
 
     #check to see if the grouplist has been created. If it has not been created, create and add identity. 
@@ -42,7 +42,7 @@ https://github.com/ChrisMandich/RandomPowershellScripts
         Add-ADGroupList -Identity $Identity 
                  
     }
-    elseif($Global:GroupList.name.contains($Identity.name) -eq $false){
+    elseif($Global:GroupList.DistinguishedName.contains($Identity.DistinguishedName) -eq $false -and -not $(Test-Path Variable:\Identity) -eq $false){
         #if group is not in list, add to grouplist. 
         Add-ADGroupList -Identity $Identity 
 
