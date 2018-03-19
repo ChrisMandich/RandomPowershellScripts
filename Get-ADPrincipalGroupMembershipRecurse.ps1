@@ -1,4 +1,3 @@
-﻿$Global:PrincipalGroupList = @()
 
 function Get-ADPrincipalGroupMembershipRecurse {
 
@@ -6,7 +5,7 @@ function Get-ADPrincipalGroupMembershipRecurse {
 .SYNOPSIS
 This is a simple Powershell Script to retrieve all parents groups for an AD group. 
 .DESCRIPTION
-The script uses Get-ADPrincipalGroupMembership to collect all parent groups for a group. The found groups are added to a global Variable $global:PrincipalGroupList
+The script uses Get-ADPrincipalGroupMembership to collect all parent groups for a group.
 .EXAMPLE
 Get-ADPrincipalGroupMembershipRecurse -identity <Group Name>
 .LINK
@@ -18,22 +17,47 @@ https://github.com/ChrisMandich/RandomPowershellScripts
         $Identity
     )
 
-    $GROUP = Get-ADGroupMember -Identity $Identity.toString() | where objectClass -eq "group" 
-
-    #check to see if the group is empty. If it is empty add the current group to the list. 
-    if($Global:PrincipalGroupList.Count -eq 0){
-        $Global:PrincipalGroupList += Get-ADPrincipalGroupMembership -Identity $Identity 
-    }
-
-    #Iterate through group variable and add parent groups to the global variable. 
-    $GROUP | ForEach-Object {
-        if($_.objectClass -eq "group" -and $Global:PrincipalGroupList.name.contains($_.name) -eq $false){
-            $Global:PrincipalGroupList += $_
-            #Recursively check new groups. 
-            Get-ADPrincipalGroupMembershipRecurse -Identity $_.name
-        }
-    }
+    $Identity = Get-ADGroup -Identity $Identity -ErrorAction Stop
     
-    #Output to console
-    Write-Output $Global:PrincipalGroupList
+    function Add-ADPrincipalGroupList{
+        Param (
+            $Identity
+        )
+        
+        #Write identity out and add it to list. 
+        Write-Output $Identity
+        $Global:PrincipalGroupList += $Identity
+        
+        #Check for groups in group
+        $GROUP = Get-ADPrincipalGroupMembership -Identity $Identity.DistinguishedName | where objectClass -eq "group"
+
+        #Check new groups for child groups
+        $GROUP | ForEach-Object{Get-ADPrincipalGroupMembershipRecurse -Identity $_.DistinguishedName}
+    }
+
+    #check to see if the PrincipalGroupList has been created. If it has not been created, create and add identity. 
+    if($(Test-Path Variable:\PrincipalGroupList) -eq $false){
+        #Create Global Variable
+        $Global:PrincipalGroupList = @()
+        Add-ADPrincipalGroupList -Identity $Identity 
+                 
+    }
+    elseif($Global:PrincipalGroupList.DistinguishedName.contains($Identity.DistinguishedName) -eq $false -and -not $(Test-Path Variable:\Identity) -eq $false){
+        #if group is not in list, add to PrincipalGroupList. 
+        Add-ADPrincipalGroupList -Identity $Identity 
+
+        #Exit function
+        return;        
+    }   
+    else{
+
+        #Exit function 
+        return;
+    }    
+
+    #Remove variable
+    Remove-Item Variable:\PrincipalGroupList
+    
+    #Exit function
+    Return;
 }
