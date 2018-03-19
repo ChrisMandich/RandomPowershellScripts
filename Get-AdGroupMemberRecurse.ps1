@@ -1,12 +1,11 @@
-﻿$Global:GroupList = @()
 
 function Get-AdGroupMemberRecurse {
 
 <#
 .SYNOPSIS
-This is a simple Powershell Script to retrieve all nested groups for an AD group. 
+This is a simple Powershell Script to retrieve all nested groups for an AD account. 
 .DESCRIPTION
-The script uses Get-AdGroupMember to collect all associated groups for a parent group. The found groups are added to a global Variable $global:GroupList
+The script uses Get-AdGroupMember to collect all associated groups for a parent group. The found groups are returned. 
 .EXAMPLE
 Get-AdGroupMemberRecurse -identity <Group Name>
 .LINK
@@ -18,22 +17,47 @@ https://github.com/ChrisMandich/RandomPowershellScripts
         $Identity
     )
 
-    $GROUP = Get-ADGroupMember -Identity $Identity.toString() | where objectClass -eq "group" 
-
-    #check to see if the group is empty. If it is empty add the current group to the list. 
-    if($Global:GroupList.Count -eq 0){
-        $Global:GroupList += Get-ADGroup -Identity $Identity 
-    }
-
-    #Iterate through group variable and add child groups to the global variable. 
-    $GROUP | ForEach-Object {
-        if($_.objectClass -eq "group" -and $Global:GroupList.name.contains($_.name) -eq $false){
-            $Global:GroupList += $_
-            #Recursively check new groups. 
-            Get-AdGroupMemberRecurse -Identity $_.name
-        }
-    }
+    $Identity = Get-ADGroup -Identity $Identity
     
-    #Output to console
-    Write-Output $Global:GroupList
+    function Add-ADGroupList{
+        Param (
+            $Identity
+        )
+        
+        #Write identity out and add it to list. 
+        Write-Output $Identity
+        $Global:GroupList += $Identity
+        
+        #Check for groups in group
+        $GROUP = Get-ADGroupMember -Identity $Identity.name | where objectClass -eq "group"
+
+        #Check new groups for child groups
+        $GROUP | ForEach-Object{Get-AdGroupMemberRecurse -Identity $_.name}
+    }
+
+    #check to see if the grouplist has been created. If it has not been created, create and add identity. 
+    if($(Test-Path Variable:\GroupList) -eq $false){
+        #Create Global Variable
+        $Global:GroupList = @()
+        Add-ADGroupList -Identity $Identity 
+                 
+    }
+    elseif($Global:GroupList.name.contains($Identity.name) -eq $false){
+        #if group is not in list, add to grouplist. 
+        Add-ADGroupList -Identity $Identity 
+
+        #Exit function
+        return;        
+    }   
+    else{
+
+        #Exit function 
+        return;
+    }    
+
+    #Remove variable
+    Remove-Item Variable:\GroupList
+    
+    #Exit function
+    Return;
 }
